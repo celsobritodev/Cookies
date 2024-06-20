@@ -13,57 +13,58 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class CarrinhoServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	
-	private static final String COOKIE_NAME = "produtos";
-	//private static final String COOKIE_NAME = "produtos1";
 
+	// private static final String COOKIE_NAME = "COOKIE_001";
+	private static final String COOKIE_NAME = "COOKIE_002";
 
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
-		Cookie cookieProdutos = null;
-		Cookie cookies[] = request.getCookies();
+		Cookie myCookieProdutos = null;
+		Cookie cookies[] = request.getCookies(); // devolve array de cookies
 		PrintWriter pw = response.getWriter();
 
 		if (cookies != null)
-			for (Cookie ci : cookies) {
-				String sCookieName=ci.getName(); 
-				if (sCookieName.equals(COOKIE_NAME))
-					cookieProdutos = ci;
+			for (Cookie cookieAtual : cookies) {
+				String sCookieName = cookieAtual.getName();
+				if (sCookieName.equals(COOKIE_NAME)) // é o meu cookie?
+					myCookieProdutos = cookieAtual;
 			}
-		if (cookieProdutos != null)
-			if(!cookieProdutos.getValue().isEmpty()) 
-  		      pw.append("PRODUTOS: " + cookieProdutos.getValue());
+		if (myCookieProdutos != null) {
+			if (!myCookieProdutos.getValue().isEmpty())
+				pw.append("PRODUTOS: " + myCookieProdutos.getValue());
 			else
-			  pw.append("PRODUTOS: NÃO HÁ NENHUM PRODUTO!");
-
+				pw.append("PRODUTOS: O CARRINHO ESTÁ VAZIO!");
+		} else 
+			pw.append("PRODUTOS: CARRINHO NÃO ENCONTRADO!");
 	}
-	
 
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
-		Cookie cookieProdutos = null;
+		Cookie myCookieProdutos = null;
 		Cookie cookies[] = request.getCookies();
 		String produto = request.getParameter("produto");
 		PrintWriter pw = response.getWriter();
 
 		if (cookies != null)
-			for (Cookie ci : cookies) {
-				String sCookieName=ci.getName(); 
+			for (Cookie cookieAtual : cookies) {
+				String sCookieName = cookieAtual.getName();
 				if (sCookieName.equals(COOKIE_NAME))
-					cookieProdutos = ci;
+					myCookieProdutos = cookieAtual;
 			}
-		Cookie cp = null;
+		Cookie novoCookie = null;
 		if (produto != null) {
-			if (cookieProdutos != null) {
-				cp = new Cookie(COOKIE_NAME, cookieProdutos.getValue() + "/" + produto);
+			if (myCookieProdutos != null) {
+				String sItensNoCarrinho = myCookieProdutos.getValue();
+				novoCookie = new Cookie(COOKIE_NAME, sItensNoCarrinho + "/" + produto);
 			} else {
-				cp = new Cookie(COOKIE_NAME, produto);
+				novoCookie = new Cookie(COOKIE_NAME, produto);
 			}
-			response.addCookie(cp);
+			response.addCookie(novoCookie);
+			pw.append("PRODUTO ADICIONADO!");
 			response.setStatus(201);
 		} else {
 			response.setStatus(400);
@@ -75,29 +76,37 @@ public class CarrinhoServlet extends HttpServlet {
 	protected void doDelete(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 
-		Cookie cookieProdutos = null;
+		Cookie myCookieProdutos = null;
 		Cookie cookies[] = request.getCookies();
 		String produto = request.getParameter("produto");
 		PrintWriter pw = response.getWriter();
 
 		if (cookies != null)
-			for (Cookie ci : cookies) {
-				String sCookieName=ci.getName(); 
+			for (Cookie cookieAtual : cookies) {
+				String sCookieName = cookieAtual.getName();
 				if (sCookieName.equals(COOKIE_NAME))
-					cookieProdutos = ci;
-			}  
-		if (produto != null && cookieProdutos != null) {
-			String strProds = cookieProdutos.getValue();
-			String prods[] = strProds.split("/");
-			List<String> lp = new ArrayList<String>();
+					myCookieProdutos = cookieAtual;
+			}
+		if (produto != null && myCookieProdutos != null) {
+			String sItensNoCarrinho = myCookieProdutos.getValue(); // pega itens do carrinho
+			String antigaListaProdutos[] = sItensNoCarrinho.split("/");
+			List<String> novaListaProdutos = new ArrayList<String>();
 
-			for (String p : prods)
-				if (!p.toUpperCase().equals(produto.toUpperCase()))
-					lp.add(p);
-
-			strProds = String.join("/", lp);
-			Cookie cp = new Cookie(COOKIE_NAME, strProds);
-			response.addCookie(cp);
+			int iQtdAntigaProdutos = 0;
+			for (String produtoAtual : antigaListaProdutos) {
+				iQtdAntigaProdutos++;
+				if (!produtoAtual.toUpperCase().equals(produto.toUpperCase()))
+					novaListaProdutos.add(produtoAtual);
+			}
+			int iQtdNovaProdutos = novaListaProdutos.size();
+			if (iQtdAntigaProdutos != iQtdNovaProdutos) {
+				sItensNoCarrinho = String.join("/", novaListaProdutos);
+				Cookie novoCookie = new Cookie(COOKIE_NAME, sItensNoCarrinho);
+				response.addCookie(novoCookie);
+				pw.append("PRODUTO REMOVIDO!");
+			} else {
+				pw.append("PRODUTO NAO ENCONTRADO!");
+			}
 			response.setStatus(200);
 		} else {
 			response.setStatus(400);
